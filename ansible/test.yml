@@ -1,0 +1,101 @@
+---
+- name: test
+    hosts: localhost
+    gather_facts: yes
+
+      tasks:
+
+            - name: Windows
+                ansible.windows.win_package:
+                        path: C:\application.exe
+                        state: present
+
+            - name: Run PowerShell script
+                ansible.windows.win_powershell:
+                        script: |
+                                cmd1
+
+            - name: Run basic PowerShell script
+                ansible.windows.win_powershell:
+                        script: |
+                                 $a=cmd1; cmd2 --$a
+
+                ansible.windows.win_package:
+                        path: "{{ packages }}"
+                        state: present
+                         packages:
+                                 - C:\service-1.exe
+                                 - C:\service-2.exe
+                                 - C:\service-3.exe
+                                 - C:\service-4.exe
+                                 - C:\service-5.exe
+                                 - C:\service-6.exe
+                                 - C:\service-7.exe
+                                 - C:\service-8.exe
+                                 - C:\service-9.exe
+                                 - C:\service-10.exe
+                                 - C:\service-11.exe
+                                 - C:\service-12.exe
+                                 - C:\service-13.exe
+                                 - C:\service-14.exe
+                                 - C:\service-15.exe
+                                 - C:\service-16.exe
+                                 - C:\service-17.exe
+                                 - C:\service-18.exe
+                                 - C:\service-19.exe
+                                 - C:\service-20.exe
+                                 - C:\service-21.exe
+                                 - C:\service-22.exe
+                                 - C:\service-23.exe
+                                 - C:\service-24.exe
+                                 - C:\service-25.exe
+                                 - C:\service-26.exe
+                                 - C:\service-27.exe
+                                 - C:\service-28.exe
+                                 - C:\service-29.exe
+                                 - C:\service-30.exe
+
+                when: ansible_facts['distribution']=="Windows"
+
+        - name: CentOS
+                 ansible.builtin.yum:
+                      name: "{{ packages }}"
+                         vars:
+                         packages:
+                            - service-1
+                            - service-2
+                            - service-3
+                            - service-4
+                            - service-5
+                            - service-6
+                            - service-7
+                            - service-8
+                            - service-9
+                            - service-10
+                            - service-11
+                            - service-12
+                            - service-13
+                            - service-14
+                            - service-15
+                            - service-16
+                            - service-17
+                            - service-18
+                            - service-19
+                            - service-20
+                            - service-21
+                            - service-22
+                            - service-23
+                            - service-24
+                            - service-25
+                            - service-26
+                            - service-27
+                            - service-28
+                            - service-29
+                            - service-30
+
+                ansible.builtin.shell: yum -y install application
+
+                ansible.builtin.shell: cmd1
+
+                ansible.builtin.shell: cmd1 1>/dev/null 2>/dev/null; cmd2 --$1
+                when: ansible_facts['distribution']=="CentOS"
