@@ -1,0 +1,8 @@
+#!/bin/bash
+if grep my-data datafile 1>/dev/null 2>/dev/null ;
+then
+   generate report
+   export-reports
+else
+    echo 0
+fi
