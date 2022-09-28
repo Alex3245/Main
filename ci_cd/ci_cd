@@ -1,1 +1,35 @@
+image: runner
+        tags:
+        - runner001
+stages:
+  - build
+  - test
+  - delivery
+  - deploy
 
+before_script:
+  - download-dep
+
+test1:
+  stage: test
+  script:
+    - echo "Start test1 job"
+    - run test1
+  rules:
+        if: $CI_COMMIT_TAG: == "test"
+
+test2:
+  stage: test
+  script:
+    - echo "Start test2 job"
+    - run test2
+  rules:
+        if: $CI_COMMIT_TAG: != "main"
+
+test3:
+  stage: test
+  script:
+    - echo "Start test3 job"
+    - run test33
+  rules:
+        if: $CI_COMMIT_TAG: =~ "(*.)v.1.0.0"
