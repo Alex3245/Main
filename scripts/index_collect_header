@@ -1,0 +1,35 @@
+#!/bin/bash
+
+curTime=1650618000
+subTime=63113852
+minTime=$(( curTime-subTime ))
+normTime=$(date "+%D:%H:%M:%S:%N")
+index=('header')
+letter=('a' 'b' 'c')
+addTime=86400
+echo "$normTime : start script" > /opt/otp/clisearch/searchlogs/for_script_header_$curTime
+for i in "${index[@]}" #gathering all index headers
+do
+normTime=$(date "+%D:%H:%M:%S:%N")
+echo "$normTime : starting $i sequence " >> /opt/otp/clisearch/searchlogs/for_script_header_$curTime
+
+        for l in "${letter[@]}" #gathering all postfix letters
+        do
+        normTime=$(date "+%D:%H:%M:%S:%N")
+        echo "$normTime : index $i continue with letter $l "  >> /opt/otp/clisearch/searchlogs/for_script_header_$curTime
+
+                while [ $minTime -le $curTime ] # until time is up
+                do
+                normTime=$(date "+%D:%H:%M:%S:%N")
+                echo "$normTime : index $i letter $l loop started  $minTime _ $(( minTime+addTime )) " >> /opt/otp/clisearch/searchlogs/for_script_header_$curTime
+./clisearch --query "| otstats index="cal_${i[@]}" source="*cal.${i[@]}_${l[@]}*" earliest=$minTime latest=$(( minTime+addTime )) | eval DUR = tostring(DUR) | collect  mode=as-is index=new_int_${i[@]}_${l[@]} |  head 1 "  >> /opt/otp/clisearch/searchlogs/for_script_header_$curTime
+
+                normTime=$(date "+%D:%H:%M:%S:%N")
+                echo "$normTime : index $i letter $l loop ended  $minTime _ $(( minTime+addTime )) " >> /opt/otp/clisearch/searchlogs/for_script_header_$curTime
+                minTime=$(( minTime+addTime ))
+
+                done
+        minTime=$(( curTime-subTime ))
+        done
+done
+echo "$normTime :  end of script " >> /opt/otp/clisearch/searchlogs/for_script_header_$curTime
