@@ -1,0 +1,11 @@
+[Unit]
+Description=simple check start
+After=multi-user.target
+
+[Service]
+TimeoutStartSec=0
+Type=forking
+ExecStart=/opt/wdc_heartbeat/simple_check.py
+
+[Install]
+WantedBy=default.target
