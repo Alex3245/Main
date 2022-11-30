@@ -1,0 +1,84 @@
+---
+- name: Create otp_vm
+  hosts: localhost
+
+  tasks:
+
+  - name: Create vm
+    ycc_vm:
+      auth: {token: AQAAAABd2MMHAATuwREi-1cX3kz1qnrcCklvteo}
+      name: bpm-sandbox-node1-1
+      hostname: bpm-sandbox-node1-1
+      zone_id: ru-central1-a
+      folder_id: b1gl7no4a6uj1v5j5j4o
+      platform_id: "Intel Cascade Lake"
+      core_fraction: 100
+      cores: 8
+      memory: 24
+      image_id: fd84rpa1ijvevt3niggn
+      disk_type: ssd
+      disk_size: 150
+      subnet_id: e9bqicgil4sg7skfpd8v
+      assign_public_ip: true
+      preemptible: false
+      state: present
+    register: results
+
+  - name: Show ip
+    debug:
+      var: results.response.networkInterfaces[0]['primaryV4Address']['oneToOneNat']['address']
+  - name: Save ip to invetory file
+    local_action: copy content={{ results.response.networkInterfaces[0]['primaryV4Address']['oneToOneNat']['address'] }} dest=../hosts
+
+- name: Refresh Host Inventory at Runtime and Add a Pause while Starting VM
+  hosts: localhost
+  connection: local
+  gather_facts: True
+
+  tasks:
+
+    - name: Refresh inventory file
+      meta: refresh_inventory
+
+    - name: Pause while Starting VM
+      pause:
+        minutes: 1
+
+- name: Configure otp_vm
+  hosts: ungrouped
+
+  tasks:
+
+  - name: Update Root user's Password
+    user:
+      name: root
+      update_password: always
+      password: $6$rounds=656000$mysecretsalt$0wD/k27DlVpAzrKhIaq/Qy1bZW..CdCqQlJgWDWdqMy8lV.WSH/EcJSX7WqMyVbX2JEW6ZsJ9u926CXyZiyBt0
+ - name: Install iptables
+    yum: name=iptables-services state=latest
+
+  - name:  Start iptables and make it enable on boot
+    service: name=iptables state=started enabled=yes
+
+  - name: Add user isg
+    user:
+      name: isg
+      groups: wheel
+      state: present
+
+  - name: Configure sudo usage without password
+    copy:
+      src: ../data/isg_user
+      dest: /etc/sudoers.d
+
+  - name: Create .ssh directory
+    file:
+      path: /home/isg/.ssh
+      state: directory
+      mode: '0700'
+      owner: isg
+      group: isg
+
+  - name: Copy public key's
+    copy:
+      src: ../data/authorized_keys
