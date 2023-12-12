@@ -1,0 +1,36 @@
+---
+- name: Remove pacheges
+  ansible.builtin.package:
+    name: "{{ packagesAlt }}"
+    state: absent
+
+- name: Remove pacheges in cmd
+  ansible.builtin.shell:
+    cmd: apt-get remove mysql libmariadb3 -y
+  when: ansible_facts['distribution_release'] == "Altostratus" and
+        ansible_facts['distribution_version'] == "9.1"
+
+- name: Recursively remove directory
+  ansible.builtin.file:
+    path: /var/lib/mysql/db
+    state: absent
+
+- name: Update repo
+  ansible.builtin.shell:
+    cmd: apt-get update
+
+- name: Upgrade packages
+  ansible.builtin.shell:
+    cmd: apt-get dist-upgrade -y
+    
+- name: Install MySQL 
+  ansible.builtin.package:
+    name: 
+      - MySQL-client
+      - MySQL-server
+
+- name: Started mysqld
+  ansible.builtin.service:
+    name: mysqld
+    state: started
+    enabled: yes

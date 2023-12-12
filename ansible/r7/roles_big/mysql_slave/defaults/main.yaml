@@ -1,0 +1,3 @@
+---
+ansible_port: 2235
+ansible_user: rhel

@@ -1,0 +1,126 @@
+---
+- name: Update packages
+  apt:
+    name: "*"
+    update_cache: yes
+    state: latest
+
+- name: Copy /etc/apt/sources.list
+  ansible.builtin.copy:
+    src: apt/sources.list
+    dest: /etc/apt/sources.list
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Copy /etc/apt/preferences.d/orel
+  ansible.builtin.copy:
+    src: apt/preferences.d/orel
+    dest: /etc/apt/preferences.d/orel
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Update packages
+  apt:
+    name: "*"
+    update_cache: yes
+    state: latest
+
+- name: Install curl 
+  apt:
+    name: curl
+
+- name: Add repo
+  ansible.builtin.shell:
+    cmd: echo "deb https://download.r7-office.ru/repo/debian squeeze main" | sudo tee /etc/apt/sources.list.d/r7-office.list
+
+- name: Add key
+  ansible.builtin.shell:
+    cmd: curl -s https://download.r7-office.ru/repo/gpgkey/r7-office.gpg.key | sudo apt-key add -
+
+- name: install postgresql 
+  apt:
+    name: postgresql
+
+- name: Create db
+  ansible.builtin.shell:
+    cmd: sudo -i -u postgres psql -c "CREATE DATABASE r7office;"
+
+- name: Create user
+  ansible.builtin.shell:
+    cmd: sudo -i -u postgres psql -c "CREATE USER r7office WITH password 'r7office';"
+
+- name: Add privileges
+  ansible.builtin.shell:
+    cmd: sudo -i -u postgres psql -c "GRANT ALL privileges ON DATABASE r7office TO r7office;"
+
+- name: Install rabbitmq-server 
+  apt:
+    name: rabbitmq-server
+
+- name: Install nginx-extras 
+  apt:
+    name: nginx-extras
+
+- name: Install redis-server 
+  apt:
+    name: redis-server
+
+- name: Install nginx-extras 
+  apt:
+    name: nginx-extras
+
+- name: Select pwd
+  ansible.builtin.shell:
+    cmd: sudo echo r7-office-documentserver-ee ds/db-pwd select "{{ postgresql_user_pwd }}" | sudo debconf-set-selections
+
+- name: Select user
+  ansible.builtin.shell:
+    cmd: sudo echo r7-office-documentserver-ee ds/db-user select "{{ postgresql_user }}" | sudo debconf-set-selections
+
+- name: Select name db
+  ansible.builtin.shell:
+    cmd: sudo echo r7-office-documentserver-ee ds/db-name select "{{ postgresql_db_name }}" | sudo debconf-set-selections
+
+- name: Select jwt-enabled
+  ansible.builtin.shell:
+    cmd: sudo echo r7-office-documentserver ds/jwt-enabled select "{{ jwt_enabled }}" | sudo debconf-set-selections
+
+- name: Select jwt-secret
+  ansible.builtin.shell:
+    cmd: sudo echo r7-office-documentserver ds/jwt-secret select "{{ jwt_secret }}" | sudo debconf-set-selections
+
+- name: Select jwt-header
+  ansible.builtin.shell:
+    cmd: sudo echo r7-office-documentserver ds/jwt-header select "{{ jwt_header }}" | sudo debconf-set-selections
+
+- name: Select jwt-enabled
+  ansible.builtin.shell:
+    cmd: sudo echo r7-office-documentserver-ee ds/jwt-enabled select "{{ jwt_enabled }}" | sudo debconf-set-selections
+
+- name: Select jwt-secret
+  ansible.builtin.shell:
+    cmd: sudo echo r7-office-documentserver-ee ds/jwt-secret select "{{ jwt_secret }}" | sudo debconf-set-selections
+
+- name: Select jwt-header
+  ansible.builtin.shell:
+    cmd: sudo echo r7-office-documentserver-ee ds/jwt-header select "{{ jwt_header }}" | sudo debconf-set-selections
+
+- name: Install r7-office-documentserver-ee 
+  apt:
+    name: r7-office-documentserver-ee
+
+- name: Create a directory /var/www/r7-office/Data/
+  ansible.builtin.file:
+    path: /var/www/r7-office/Data/
+    state: directory
+    mode: '0755'
+  
+- name: Copy license
+  ansible.builtin.copy:
+    src: 4a49433e-1233-4233-b69e-ff7013d59c2a.lic
+    dest: /var/www/r7-office/Data/license.lickey
+    owner: root
+    group: root
+    mode: '0666'

@@ -1,0 +1,27 @@
+---
+#install tasks.
+- include_tasks: ../roles/deploy_CS/tasks/alt.yaml
+  when: ansible_facts['distribution'] == "Altlinux" or 
+        (ansible_facts['distribution_major_version'] == '10' and
+        ansible_facts['distribution'] != "Debian")
+
+- include_tasks: ../roles/deploy_CS/tasks/astra.yaml
+  when: ansible_facts['distribution'] == "Astra Linux" or
+        ansible_facts['distribution'] == "Astra Linux (Orel)"
+
+- include_tasks: ../roles/deploy_CS/tasks/centos.yaml
+  when: ansible_facts['distribution'] == "CentOS"
+
+- include_tasks: ../roles/deploy_CS/tasks/debian.yaml
+  when: ansible_facts['distribution'] == "Debian"
+
+- include_tasks: ../roles/deploy_CS/tasks/redos.yaml
+  when: ansible_facts['distribution'] == "RED"
+
+- include_tasks: ../roles/deploy_CS/tasks/ubuntu.yaml
+  when: ansible_facts['distribution'] == "Ubuntu"
+
+- name: reboot server
+  ansible.builtin.reboot:
+    reboot_timeout: 3600
+

@@ -1,0 +1,91 @@
+---
+- name: upgrade all packages
+  yum:
+    name: '*'
+    state: latest
+    
+- name: create /etc/yum.repos.d/nginx.repo (Centos)
+  ansible.builtin.copy:
+    src: yum.repos.d/nginx.repo
+    dest: /etc/yum.repos.d/nginx.repo
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: tasks for CentOS7
+  block: 
+
+    - name: install nginx (Centos7)
+      yum:
+        name: nginx
+
+    - name: install epel-release (Centos7)
+      yum:
+        name: epel-release
+
+  vars:
+    ansible_python_interpreter: /usr/bin/python2
+  when: ansible_facts['distribution_major_version'] == "7"
+
+- name: tasks for CentOS8
+  block: 
+
+    - name: install nginx (Centos8)
+      ansible.builtin.package:
+        name: nginx
+
+    - name: install epel-release (Centos8)
+      ansible.builtin.package:
+        name: epel-release
+
+  when: ansible_facts['distribution_major_version'] == "8"
+
+- name: create /etc/nginx/nginx.conf
+  ansible.builtin.copy:
+    src: nginx.conf
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: create /etc/nginx/conf.d/r7-office.conf
+  ansible.builtin.template:
+    src: conf.d/r7-office.conf.j2
+    dest: /etc/nginx/conf.d/r7-office.conf
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: remove /etc/nginx/conf.d/default.conf
+  ansible.builtin.file:
+    path: /etc/nginx/conf.d/default.conf
+    state: absent
+
+- name: create a directory /etc/nginx/ssl
+  ansible.builtin.file:
+    path: /etc/nginx/ssl
+    state: directory
+    mode: '0755'
+
+- name: copy crt 
+  ansible.builtin.copy:
+    src: ssl/domain.crt
+    dest: /etc/nginx/ssl/domain.crt
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: copy key
+  ansible.builtin.copy:
+    src: ssl/domain.key
+    dest: /etc/nginx/ssl/domain.key
+    owner: root
+    group: root
+    mode: '0644'
+    
+- name: started nginx
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: yes
+    

@@ -1,0 +1,8 @@
+# parameter change in /var/www/r7-office/WebStudio/web.appsettings.config
+sed 's_"files.docservice.url.public" value=.*. />_"files.docservice.url.public" value="http://{{ hostvars['ds_node'].ansible_host }}/" />"_' -i /var/www/r7-office/WebStudio/web.appsettings.config
+sed 's_"files.docservice.url.internal" value=.*. />_"files.docservice.url.internal" value="" />_' -i /var/www/r7-office/WebStudio/web.appsettings.config
+sed 's_"files.docservice.url.portal" value=.*. />_"files.docservice.url.portal" value="http://{{ ansible_host }}/" />"_' -i /var/www/r7-office/WebStudio/web.appsettings.config
+# parameter change in /var/www/r7-office/Services/TeamLabSvc/TeamLabSvc.exe.config
+sed 's_"files.docservice.url.public" value=.*. />_"files.docservice.url.public" value="http://{{ hostvars['ds_node'].ansible_host }}/" />_' -i /var/www/r7-office/Services/TeamLabSvc/TeamLabSvc.exe.config
+sed 's_"files.docservice.url.internal" value=.*. />_"files.docservice.url.internal" value="" />_' -i /var/www/r7-office/Services/TeamLabSvc/TeamLabSvc.exe.config
+sed 's_"files.docservice.url.portal" value=.*. />_"files.docservice.url.portal" value="http://{{ ansible_host }}/" />_' -i /var/www/r7-office/Services/TeamLabSvc/TeamLabSvc.exe.config

@@ -1,0 +1,25 @@
+---
+#install tasks.
+- ansible.builtin.import_tasks: alt.yaml
+  when: (ipv4_172.ansible_facts.ansible_distribution == "Altlinux" or 
+        ipv4_172.ansible_facts.ansible_distribution == "ALT Server" or
+        ipv4_172.ansible_facts.ansible_distribution == "MOS") and 
+        ipv4_172.ansible_facts.ansible_distribution_release != "cliff" and
+        ipv4_172.ansible_facts.ansible_distribution_release != "december"
+
+- ansible.builtin.import_tasks: astra.yaml
+  when: ansible_facts['distribution'] == "Astra Linux" or
+        ansible_facts['distribution'] == "Astra Linux (Orel)"
+
+- ansible.builtin.import_tasks: centos.yaml
+  when: ansible_facts['distribution'] == "CentOS"
+
+- ansible.builtin.import_tasks: debian.yaml
+  when: ansible_facts['distribution'] == "Debian"
+
+- ansible.builtin.import_tasks: redos.yaml
+  when: ansible_facts['distribution'] == "RED"
+
+- ansible.builtin.import_tasks: ubuntu.yaml
+  when: ansible_facts['distribution'] == "Ubuntu"
+

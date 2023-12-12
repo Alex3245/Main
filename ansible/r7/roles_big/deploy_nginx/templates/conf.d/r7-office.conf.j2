@@ -1,0 +1,76 @@
+# Config for cs-r7 cluster
+upstream csr7 {
+{% if cs_cluster == "true" %}
+    server {{ hostvars['cs_1'].ansible_host }} max_fails=1;
+    server {{ hostvars['cs_2'].ansible_host }} backup;
+{% else %}
+    server {{ hostvars['cs_1'].ansible_host }};
+{% endif %}
+    }
+
+server {
+    listen      80;
+{% if vars_ssl == "true" %}
+    listen     443 ssl http2;
+{% else %}
+
+{% endif %}
+
+{% if domain_name is defined %}
+    server_name {{ domain_name }};
+{% else %}
+    server_name default_server;
+{% endif %}
+
+{% if vars_ssl == "true" %}
+    # Path to SSL certs.
+    ssl_certificate     /etc/nginx/ssl/domain.crt;
+    ssl_certificate_key /etc/nginx/ssl/domain.key;
+
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers "ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA:ECDHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES128-SHA256:DHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES256-GCM-SHA384:AES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:AES256-SHA:AES128-SHA:DES-CBC3-SHA:HIGH:!aNULL:!eNULL:!EXPORT:!DES:!MD5:!PSK:!RC4";
+    ssl_prefer_server_ciphers on;
+{% else %}
+
+{% endif %}
+
+    error_log   /var/log/nginx/cs-r7-error.log debug;
+    access_log  /var/log/nginx/cs-r7-access.log;
+
+{% if vars_ssl == "true" %}
+    if ($scheme != "https") {
+        return 301 https://$host$request_uri;
+        }
+{% else %}
+ 
+{% endif %}
+
+    large_client_header_buffers 4 64k;
+
+    location / {
+{% if vars_ssl == "true" %}
+        proxy_pass https://csr7;
+{% else %}
+        proxy_pass http://csr7;
+{% endif %}
+        proxy_set_header Host $host;
+        proxy_connect_timeout 7d;
+        proxy_send_timeout 7d;
+        proxy_read_timeout 7d;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_redirect off;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        
+        add_header X-Request-ID $request_id always;
+        proxy_set_header X-NginX-Proxy true;
+        proxy_set_header X-Request-ID $request_id;
+        proxy_set_header X-Context-ID $request_id;
+        proxy_next_upstream error http_500 http_503 http_504 http_404;
+        proxy_max_temp_file_size 0;
+        
+    }
+}

@@ -1,0 +1,43 @@
+---
+- name: сopy install-AstraLinux.sh
+  ansible.builtin.template:
+    src: scripts/install-AstraLinux.sh.j2
+    dest: /tmp/install-AstraLinux.sh
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: сopy install-app.sh
+  ansible.builtin.template:
+    src: scripts/install-AstraLinux/install-app.sh.j2
+    dest: /tmp/install-app.sh
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: сopy install-preq.sh
+  ansible.builtin.template:
+    src: scripts/install-AstraLinux/install-preq.sh.j2
+    dest: /tmp/install-preq.sh
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: update all packages
+  apt:
+    name: "*"
+    update_cache: yes
+    state: latest
+
+- name: pre-installation
+  apt:
+    name: "{{ packagesDeb }}"
+
+- name: run a script
+  ansible.builtin.shell:
+    cmd: bash /tmp/install-AstraLinux.sh
+  register: runscript
+
+- name: debug runscript
+  debug:
+    msg: "{{ runscript.stdout_lines }}"

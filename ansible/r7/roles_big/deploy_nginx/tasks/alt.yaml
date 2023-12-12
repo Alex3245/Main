@@ -1,0 +1,54 @@
+---
+- name: update repo
+  ansible.builtin.shell:
+    cmd: apt-get update
+
+# - name: install the necessary packages 
+#   ansible.builtin.package:
+#     name: 
+#       - xorg-x11-font-utils
+#       - cabextract
+
+- name: upgrade packages
+  ansible.builtin.shell:
+    cmd: apt-get dist-upgrade -y
+
+- name: install nginx 
+  ansible.builtin.package:
+    name: nginx
+
+- name: copy /etc/nginx/conf.d/r7-office.conf
+  ansible.builtin.template:
+    src: conf.d/r7-office.conf.j2
+    dest: /etc/nginx/conf.d/r7-office.conf
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: create a directory /etc/nginx/ssl
+  ansible.builtin.file:
+    path: /etc/nginx/ssl
+    state: directory
+    mode: '0755'
+
+- name: copy crt 
+  ansible.builtin.copy:
+    src: ssl/domain.crt
+    dest: /etc/nginx/ssl/domain.crt
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: copy key
+  ansible.builtin.copy:
+    src: ssl/domain.key
+    dest: /etc/nginx/ssl/domain.key
+    owner: root
+    group: root
+    mode: '0644'
+    
+- name: start service nginx
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: yes

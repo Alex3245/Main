@@ -1,0 +1,130 @@
+---
+- name: upgrade all packages
+  yum:
+    name: '*'
+    state: latest
+
+- name: сopy install-RedHat.sh
+  ansible.builtin.template:
+    src: scripts/install-RedHat.sh.j2
+    dest: /tmp/install-RedHat.sh
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: сopy install-app.sh
+  ansible.builtin.template:
+    src: scripts/install-AltLinux/install-app.sh.j2
+    dest: /tmp/install-app.sh
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: pre-installation steps for Centos8
+  yum:
+    name: "{{ packagesCentos }}"
+    state: latest
+  when: ansible_facts['distribution'] == "CentOS" and
+        ansible_facts['distribution_major_version'] == "8"
+
+- name: pre-installation steps for Centos7
+  yum:
+    name: "{{ packagesCentos }}"
+    state: latest
+  vars:
+    ansible_python_interpreter: /usr/bin/python2
+  when: ansible_facts['distribution'] == "CentOS" and
+        ansible_facts['distribution_major_version'] == "7"
+
+- name: firewalld
+  block: 
+
+    - name: restart service firewalld
+      ansible.builtin.service:
+        name: firewalld
+        state: restarted
+        enabled: yes
+
+    - name: add-port=80/tcp
+      ansible.builtin.shell:
+        cmd: firewall-cmd --zone=public --add-port=80/tcp --permanent
+
+    - name: add-port="{{ ansible_port }}"/tcp
+      ansible.builtin.shell:
+        cmd: firewall-cmd --zone=public --add-port="{{ ansible_port }}"/tcp --permanent
+
+    - name: add-port=443/tcp
+      ansible.builtin.shell:
+        cmd: firewall-cmd --zone=public --add-port=443/tcp --permanent
+
+    - name: firewall reload
+      ansible.builtin.shell:
+        cmd: firewall-cmd --reload
+
+  ignore_errors: yes
+
+- name: copy communityserver-configure.sh
+  ansible.builtin.template:
+    src: usr/bin/communityserver-configure.sh.j2
+    dest: /usr/bin/communityserver-configure.sh
+    owner: root
+    group: root
+    mode: '0744'
+    
+- name: copy xmppserver-configure.sh
+  ansible.builtin.template:
+    src: usr/bin/xmppserver-configure.sh.j2
+    dest: /usr/bin/xmppserver-configure.sh
+    owner: root
+    group: root
+    mode: '0744'
+
+- name: run a script
+  ansible.builtin.shell:
+    cmd: yes | bash /tmp/install-RedHat.sh
+  register: runscript
+
+- name: debug runscript
+  debug:
+    msg: "{{ runscript }}"
+
+- name: cat web.connections.config 
+  ansible.builtin.shell:
+    cmd: cat /var/www/r7-office/WebStudio/web.connections.config 
+  register: web
+
+- name: debug web
+  debug:
+    msg: "{{ web }}"
+
+- name: cat ASC.Xmpp.Server.Launcher.exe.config
+  ansible.builtin.shell:
+    cmd: cat /var/www/r7-office/Services/Jabber/ASC.Xmpp.Server.Launcher.exe.config
+  register: xmpp
+
+- name: debug xmpp
+  debug:
+    msg: "{{ xmpp }}"
+
+- name: stop service mysqld
+  ansible.builtin.shell:
+    cmd: systemctl restart mysqld
+    enabled: no
+
+- name: stop service supervisord
+  ansible.builtin.shell:
+    cmd: systemctl restart supervisord
+    enabled: no
+
+- name: copy ds_settings.sh
+  ansible.builtin.template:
+    src: scripts/ds_settings.sh.j2
+    dest: /tmp/ds_settings.sh
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: running the script to configure the ds
+  ansible.builtin.shell:
+    cmd: sh /tmp/ds_settings.sh
+  register: runscript

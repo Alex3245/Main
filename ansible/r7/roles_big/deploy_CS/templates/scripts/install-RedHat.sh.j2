@@ -1,0 +1,91 @@
+#!/bin/bash
+set -e
+
+package_manager="yum"
+package_sysname="r7-office";
+DS_COMMON_NAME="ds";	
+
+RES_APP_INSTALLED="уже проинсталлирован";
+RES_APP_CHECK_PORTS="используют порты";
+RES_CHECK_PORTS="пожалуйста, убедитесь, что данные порты свободны.";
+RES_INSTALL_SUCCESS="Спасибо за инсталляцию Р7-Офис. Сервер";
+RES_PROPOSAL="Вы можете сконфигурировать ваш портал используя Р7-Офис. Панель управления.";
+RES_QUESTIONS="Если у вас есть какие-либо вопросы вы можете связаться с нами через http://wwww.r7-office.ru"
+RES_MARIADB="Для продолжения установки необходимо удалить MariaDB"
+
+ELASTICSEARCH_REPOSITORY="https://download.r7-office.ru/repo/centos/main/noarch/"
+[ -f /etc/yum.repos.d/elasticsearch.repo ] && rm -f /etc/yum.repos.d/elasticsearch.repo
+
+res_unsupported_version () {
+	RES_CHOICE="Пожалуйста, введите Y или N"
+	RES_CHOICE_INSTALLATION="Продолжить установку [Y/N]?"
+	RES_UNSPPORTED_VERSION="У вас установлена неподдерживаемая версия $DIST"
+	RES_SELECT_INSTALLATION="Выберите 'N', чтобы отменить установку Р7-Офис (рекомендуется). Выберите 'Y', чтобы продолжить установку Р7-Офис"
+	RES_ERROR_REMINDER="Пожалуйста, обратите внимание, что если вы продолжите установку, могут возникнуть ошибки"
+}
+
+while [ "$1" != "" ]; do
+	case $1 in	
+
+		-u | --update )
+			if [ "$2" != "" ]; then
+				UPDATE=$2
+				shift
+			fi
+		;;
+
+		-skiphc | --skiphardwarecheck )
+			if [ "$2" != "" ]; then
+				SKIP_HARDWARE_CHECK=$2
+				shift
+			fi
+		;;
+
+		-? | -h | --help )
+			echo "  Используйте $0 [PARAMETER] [[PARAMETER], ...]"
+			echo "    Параметры:"
+			echo "      -u, --update                      используйте для обновления существующих компонентов (true|false)"
+			echo "      -?, -h, --help                    эта справка"
+			echo
+			exit 0
+		;;
+
+	esac
+	shift
+done
+
+
+if [ -z "${UPDATE}" ]; then
+   UPDATE="false";
+fi
+
+if [ -z "${INSTALLATION_TYPE}" ]; then
+   INSTALLATION_TYPE="WORKSPACE_ENTERPRISE";
+fi
+
+if [ -z "${SKIP_HARDWARE_CHECK}" ]; then
+   SKIP_HARDWARE_CHECK="false";
+fi
+
+curl -o cs.key "https://download.r7-office.ru/repo/gpgkey/r7-office.gpg.key"
+echo "" >> cs.key
+rpm --import cs.key
+rm cs.key
+
+cat > /etc/yum.repos.d/r7-office.repo <<END
+[r7-office]
+name=r7-office repo
+baseurl=http://download.r7-office.ru/repo/centos/main/noarch/
+gpgcheck=0
+enabled=1
+END
+#####  FIX
+export MYSQL_SERVER_HOST="{{ hostvars['master_node'].ansible_host }}"
+
+DOWNLOAD_URL_PREFIX="https://download.r7-office.ru/repo/install-AltLinux"
+
+source <(curl ${DOWNLOAD_URL_PREFIX}/tools.sh)
+source <(curl ${DOWNLOAD_URL_PREFIX}/bootstrap.sh)
+source <(curl ${DOWNLOAD_URL_PREFIX}/check-ports.sh)
+source <(curl ${DOWNLOAD_URL_PREFIX}/install-preq.sh)
+source /tmp/install-app.sh

@@ -1,0 +1,128 @@
+---
+- name: Download rpm rep
+  ansible.builtin.shell:
+    cmd: curl -o /tmp/{{ MYSQL_PACKAGE_NAME }} -OL http://dev.mysql.com/get/{{ MYSQL_PACKAGE_NAME }}
+
+# - name: Download rpm rep deb9
+#   ansible.builtin.shell:
+#     cmd: curl -o /tmp/{{ MYSQL_PACKAGE_NAME_DEB9 }} -OL http://dev.mysql.com/get/{{ MYSQL_PACKAGE_NAME_DEB9 }}
+
+- name: Debian setting 
+  block:
+
+    - name: Setting repo-codename bullseye
+      ansible.builtin.shell:
+        cmd: echo "mysql-apt-config mysql-apt-config/repo-codename  select  bullseye" | debconf-set-selections
+      when: ansible_facts['ansible_distribution_release'] == "bullseye"
+
+    - name: Setting repo-codename buster
+      ansible.builtin.shell:
+        cmd: echo "mysql-apt-config mysql-apt-config/repo-codename  select  buster" | debconf-set-selections
+      when: ansible_facts['ansible_distribution_release'] == "buster"
+
+    - name: Setting repo-codename stretch
+      ansible.builtin.shell:
+        cmd: echo "mysql-apt-config mysql-apt-config/repo-codename  select  stretch" | debconf-set-selections
+      when: ansible_facts['ansible_distribution_release'] == "stretch" or
+            ansible_facts['ansible_distribution_release'] == "orel"
+
+    - name: Setting repo-distro
+      ansible.builtin.shell:
+        cmd: echo "mysql-apt-config mysql-apt-config/repo-distro  select  debian" | debconf-set-selections
+
+  when: ansible_facts['distribution'] == "Debian" or
+        ansible_facts['distribution'] == "Astra Linux (Orel)"
+
+- name: Ubuntu setting 
+  block:
+
+    - name: Setting repo-codename focal
+      ansible.builtin.shell:
+        cmd: echo "mysql-apt-config mysql-apt-config/repo-codename  select  focal" | debconf-set-selections
+      when: ansible_facts['ansible_distribution_release'] == "focal"
+
+    - name: Setting repo-codename bionic
+      ansible.builtin.shell:
+        cmd: echo "mysql-apt-config mysql-apt-config/repo-codename  select  bionic" | debconf-set-selections
+      when: ansible_facts['ansible_distribution_release'] == "bionic"
+
+    - name: Setting repo-codename xenial
+      ansible.builtin.shell:
+        cmd: echo "mysql-apt-config mysql-apt-config/repo-codename  select  xenial" | debconf-set-selections
+      when: ansible_facts['ansible_distribution_release'] == "xenial"
+
+    - name: Setting repo-distro
+      ansible.builtin.shell:
+        cmd: echo "mysql-apt-config mysql-apt-config/repo-distro  select  ubuntu" | debconf-set-selections
+
+  when: ansible_facts['distribution'] == "Ubuntu"
+
+- name: Setting select-server
+  ansible.builtin.shell:
+    cmd: echo "mysql-apt-config mysql-apt-config/select-server  select  mysql-8.0" | debconf-set-selections
+
+- name: Setting root-pass
+  ansible.builtin.shell:
+    cmd: echo mysql-community-server mysql-community-server/root-pass password "{{ mysql_pass }}" | debconf-set-selections
+
+- name: Setting re-root-pass
+  ansible.builtin.shell:
+    cmd: echo mysql-community-server mysql-community-server/re-root-pass password "{{ mysql_pass }}" | debconf-set-selections
+
+- name: Setting default-auth-override
+  ansible.builtin.shell:
+    cmd: echo mysql-community-server mysql-server/default-auth-override select "Use Strong Password Encryption (RECOMMENDED)" | debconf-set-selections
+
+- name: Setting root_password
+  ansible.builtin.shell:
+    cmd: echo mysql-server-8.0 mysql-server/root_password password "{{ mysql_pass }}" | debconf-set-selections
+
+- name: Setting root_password_again
+  ansible.builtin.shell:
+    cmd: echo mysql-server-8.0 mysql-server/root_password_again password "{{ mysql_pass }}" | debconf-set-selections
+
+- name: Setting repo
+  ansible.builtin.shell:
+    cmd: DEBIAN_FRONTEND=noninteractive dpkg -i /tmp/{{ MYSQL_PACKAGE_NAME }}
+
+- name: Rm {{ MYSQL_PACKAGE_NAME }}
+  ansible.builtin.shell:
+    cmd: rm -f /tmp/{{ MYSQL_PACKAGE_NAME }}
+
+
+# - name: Setting repo Debian 9
+#   block: 
+
+#     - name: Setting repo 
+#       ansible.builtin.shell:
+#         cmd: DEBIAN_FRONTEND=noninteractive dpkg -i /tmp/{{ MYSQL_PACKAGE_NAME_DEB9 }}
+
+#     - name: Rm {{ MYSQL_PACKAGE_NAME_DEB9 }}
+#       ansible.builtin.shell:
+#         cmd: rm -f /tmp/{{ MYSQL_PACKAGE_NAME_DEB9 }}
+
+#   when: ansible_facts['ansible_distribution_release'] == "stretch" or
+#         ansible_facts['ansible_distribution_release'] == "orel"
+
+- name: Update repo
+  ansible.builtin.apt:
+    update_cache: yes
+
+- name: Install mysql for stretch
+  ansible.builtin.shell:
+    cmd: apt-get install -yq mysql-server mysql-client --allow-unauthenticated
+  when: ansible_facts['ansible_distribution_release'] == "stretch"
+
+- name: Install mysql
+  ansible.builtin.apt:
+    name: 
+      - mysql-server
+      - mysql-client
+  when: ansible_facts['ansible_distribution_release'] != "stretch"
+
+- name: started mysqld
+  ansible.builtin.service:
+    name: mysqld
+    state: started
+    enabled: yes
+    

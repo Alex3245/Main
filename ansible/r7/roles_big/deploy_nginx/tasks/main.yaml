@@ -1,0 +1,20 @@
+---
+#install tasks.
+- include_tasks: ../roles/deploy_nginx/tasks/alt.yaml
+  when: ansible_facts['distribution'] == "Altlinux" or 
+        (ansible_facts['distribution_major_version'] == '10' and
+        ansible_facts['distribution'] != "Debian")
+
+- include_tasks: ../roles/deploy_nginx/tasks/astra.yaml
+  when: ansible_facts['distribution'] == "Astra Linux" or
+        ansible_facts['distribution'] == "Astra Linux (Orel)"
+
+- include_tasks: ../roles/deploy_nginx/tasks/centos.yaml
+  when: ansible_facts['distribution'] == "CentOS"
+
+- include_tasks: ../roles/deploy_nginx/tasks/debian.yaml
+  when: ansible_facts['distribution'] == "Debian" or 
+        ansible_facts['distribution'] == "Ubuntu"
+
+- include_tasks: ../roles/deploy_nginx/tasks/redos.yaml
+  when: ansible_facts['distribution'] == "RED"

@@ -1,0 +1,48 @@
+---
+- name: update all packages
+  apt:
+    name: "*"
+    update_cache: yes
+    state: latest
+
+- name: install nginx-extras 
+  ansible.builtin.package:
+    name: nginx-extras
+    state: present
+
+- name: copy /etc/nginx/conf.d/r7-office.conf
+  ansible.builtin.template:
+    src: conf.d/r7-office.conf.j2
+    dest: /etc/nginx/conf.d/r7-office.conf
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: create a directory /etc/nginx/ssl
+  ansible.builtin.file:
+    path: /etc/nginx/ssl
+    state: directory
+    mode: '0755'
+
+- name: copy crt 
+  ansible.builtin.copy:
+    src: ssl/domain.crt
+    dest: /etc/nginx/ssl/domain.crt
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: copy key
+  ansible.builtin.copy:
+    src: ssl/domain.key
+    dest: /etc/nginx/ssl/domain.key
+    owner: root
+    group: root
+    mode: '0644'
+    
+- name: started nginx
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: yes
+    

@@ -1,0 +1,124 @@
+---
+- name: update repo
+  ansible.builtin.shell:
+    cmd: apt-get update
+
+- name: upgrade packages
+  ansible.builtin.shell:
+    cmd: apt-get dist-upgrade -y
+
+- name: install the necessary packages 
+  ansible.builtin.package:
+    name: 
+      - xorg-x11-font-utils
+      - cabextract
+
+- name: install nginx 
+  ansible.builtin.package:
+    name: nginx
+
+- name: copy /etc/nginx/nginx.conf
+  ansible.builtin.template:
+    src: etc/nginx/nginx.conf_Alt.j2
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: start service nginx
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: yes
+
+- name: install PostgreSQL 
+  ansible.builtin.package:
+    name: 
+      - postgresql9.5
+      - postgresql9.5-server
+  when: ansible_facts['distribution_major_version'] != '10'
+
+- name: install PostgreSQL 
+  ansible.builtin.package:
+    name: 
+      - postgresql9.6
+      - postgresql9.6-server
+  when: ansible_facts['distribution_major_version'] == '10'
+
+- name: database initialization
+  ansible.builtin.shell:
+    cmd: /etc/init.d/postgresql initdb
+
+- name: copy /var/lib/pgsql/data/pg_hba.conf
+  ansible.builtin.template:
+    src: var/lib/pgsql/data/pg_hba.conf.j2
+    dest: /var/lib/pgsql/data/pg_hba.conf
+    owner: postgres
+    group: postgres
+    mode: '0600'
+
+- name: start service postgresql
+  ansible.builtin.service:
+    name: postgresql
+    state: started
+    enabled: yes
+
+- name: create db
+  ansible.builtin.shell:
+    cmd: sudo -u postgres psql -c "CREATE DATABASE r7office;"
+
+- name: create user
+  ansible.builtin.shell:
+    cmd: sudo -u postgres psql -c "CREATE USER r7office WITH password 'r7office';"
+
+- name: add privileges
+  ansible.builtin.shell:
+    cmd: sudo -u postgres psql -c "GRANT ALL privileges ON DATABASE r7office TO r7office;"
+
+- name: install redis 
+  ansible.builtin.package:
+    name: redis
+    state: present
+
+- name: start service redis
+  ansible.builtin.service:
+    name: redis
+    state: started
+    enabled: yes
+
+- name: install rabbitmq-server 
+  ansible.builtin.package:
+    name: rabbitmq-server
+    state: present
+
+- name: start service rabbitmq-server
+  ansible.builtin.service:
+    name: rabbitmq
+    state: started
+    enabled: yes
+
+- name: Download rpm
+  ansible.builtin.shell:
+    cmd: wget https://download.r7-office.ru/altlinux/r7-office-documentserver-ee.x86_64.rpm -O /tmp/r7-office-documentserver-ee.rpm
+
+- name: install rpm
+  ansible.builtin.shell:
+    cmd: apt-get install /tmp/r7-office-documentserver-ee.rpm -y
+
+- name: start service supervisord
+  ansible.builtin.service:
+    name: supervisord
+    state: started
+    enabled: yes
+
+- name: copy /usr/bin/documentserver-configure.sh
+  ansible.builtin.template:
+    src: usr/bin/documentserver-configureAlt.sh.j2
+    dest: /usr/bin/documentserver-configure.sh
+    owner: root
+    group: root
+    mode: '0744'
+
+- name: run documentserver-configure.sh
+  ansible.builtin.shell:
+    cmd: bash documentserver-configure.sh

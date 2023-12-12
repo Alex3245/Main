@@ -1,0 +1,18 @@
+---
+- name: Add source list r7
+  ansible.builtin.copy:
+    src: apt/r7-office.list
+    dest: /etc/apt/sources.list.d/r7-office.list
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Add key rep
+  ansible.builtin.shell:
+    cmd: curl -s https://download.r7-office.ru/repo/gpgkey/r7-office.gpg.key | apt-key add -
+
+- name: Install elasticsearch
+  apt:
+    name: elasticsearch="{{ version_elastic_apt }}"
+    update_cache: yes
+

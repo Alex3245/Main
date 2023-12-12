@@ -1,0 +1,63 @@
+---
+- name: copy /etc/apt/sources.list
+  ansible.builtin.template:
+    src: ./templates/etc/apt/sources.list.j2
+    dest: /etc/apt/sources.list
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: copy /etc/apt/preferences.d/orel
+  ansible.builtin.template:
+    src: ./templates/etc/apt/preferences.d/orel.j2
+    dest: /etc/apt/preferences.d/orel
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: update all packages
+  apt:
+    name: "*"
+    update_cache: yes
+    state: latest
+
+- name: install nginx-extras 
+  apt:
+    name: nginx-extras
+
+- name: copy /etc/nginx/conf.d/r7-office.conf
+  ansible.builtin.template:
+    src: ./templates/etc/nginx/conf.d/r7-office.conf.j2
+    dest: /etc/nginx/conf.d/r7-office.conf
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: create a directory /etc/nginx/ssl
+  ansible.builtin.file:
+    path: /etc/nginx/ssl
+    state: directory
+    mode: '0755'
+
+- name: copy crt 
+  ansible.builtin.copy:
+    src: ssl/domain.crt
+    dest: /etc/nginx/ssl/domain.crt
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: copy key
+  ansible.builtin.copy:
+    src: ssl/domain.key
+    dest: /etc/nginx/ssl/domain.key
+    owner: root
+    group: root
+    mode: '0644'
+    
+- name: start service nginx
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: yes
+    

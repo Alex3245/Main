@@ -1,0 +1,7 @@
+---
+MYSQL_PACKAGE_NAME_DEB9: "mysql-apt-config_0.8.24-1_all.deb"
+MYSQL_PACKAGE_NAME: "mysql-apt-config_0.8.24-1_all.deb"
+
+packagesAlt:
+  - "mysql"
+  - "libmariadb3"

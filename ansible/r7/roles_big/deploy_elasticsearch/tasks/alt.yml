@@ -1,0 +1,13 @@
+---
+- name: Download elastic
+  get_url:
+    url: "{{ url_alt_elastic }}"
+    dest: /tmp/elasticsearch.rpm
+    mode: '0644'
+    validate_certs: no
+    force: yes
+
+- name: Install elastic
+  ansible.builtin.shell:
+    cmd: rpm -ivh /tmp/elasticsearch.rpm
+

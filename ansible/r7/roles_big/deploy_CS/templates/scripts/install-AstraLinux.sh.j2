@@ -1,0 +1,114 @@
+#!/bin/bash
+
+set -e
+
+package_sysname="r7-office";
+DS_COMMON_NAME="ds";
+RES_APP_INSTALLED="уже проинсталлирован";
+RES_APP_CHECK_PORTS="используют порты";
+RES_CHECK_PORTS="пожалуйста, убедитесь, что данные порты свободны.";
+RES_INSTALL_SUCCESS="Спасибо за инсталляцию Р7-Офис. Сервер";
+RES_PROPOSAL="Вы можете сконфигурировать ваш портал используя Р7-Офис. Панель управления.";
+RES_QUESTIONS="Если у вас есть какие-либо вопросы вы можете связаться с нами через http://wwww.r7-office.ru"
+
+ELASTICSEARCH_REPOSITORY="https://download.r7-office.ru/repo/centos/main/noarch/"
+[ -f /etc/apt/sources.list.d/elastic-7.x.list ] && rm -f /etc/apt/sources.list.d/elastic-7.x.list
+
+while [ "$1" != "" ]; do
+	case $1 in	
+
+		-u | --update )
+			if [ "$2" != "" ]; then
+				UPDATE=$2
+				shift
+			fi
+		;;
+
+		-skiphc | --skiphardwarecheck )
+			if [ "$2" != "" ]; then
+				SKIP_HARDWARE_CHECK=$2
+				shift
+			fi
+		;;
+
+		-? | -h | --help )
+			echo "  Используйте $0 [PARAMETER] [[PARAMETER], ...]"
+			echo "    Параметры:"
+			echo "      -u, --update                      используйте для обновления существующих компонентов (true|false)"
+			echo "      -?, -h, --help                    эта справка"
+			echo
+			exit 0
+		;;
+
+	esac
+	shift
+done
+
+if [ -z "${UPDATE}" ]; then
+   UPDATE="false";
+fi
+
+if [ -z "${INSTALLATION_TYPE}" ]; then
+   INSTALLATION_TYPE="WORKSPACE_ENTERPRISE";
+fi
+
+if [ -z "${SKIP_HARDWARE_CHECK}" ]; then
+   SKIP_HARDWARE_CHECK="false";
+fi
+
+apt-get update
+
+if [ $(dpkg-query -W -f='${Status}' curl 2>/dev/null | grep -c "ok installed") -eq 0 ]; then
+  apt-get install -yq curl;
+fi
+
+if [ $(dpkg-query -W -f='${Status}' apt-transport-https 2>/dev/null | grep -c "ok installed") -eq 0 ]; then
+	apt-get install -yq apt-transport-https;
+fi
+
+export MYSQL_SERVER_HOST="{{ hostvars['master_node'].ansible_host }}"
+DOWNLOAD_URL_PREFIX="https://download.r7-office.ru/repo/install-AstraLinux"
+
+source <(curl ${DOWNLOAD_URL_PREFIX}/bootstrap.sh)
+
+echo "deb https://download.r7-office.ru/repo/debian squeeze main" | tee /etc/apt/sources.list.d/r7-office.list
+curl -s https://download.r7-office.ru/repo/gpgkey/r7-office.gpg.key | apt-key add -			
+
+source <(curl ${DOWNLOAD_URL_PREFIX}/tools.sh)
+
+if [[ "$DIST" =~ "astralinux"* ]]; then
+        REV=`cat /etc/debian_version`
+        res=$(vercomp $DISTRIB_RELEASE 2.0 $REV);
+		
+        case $res in
+                1)
+                   DIST="debian";
+                   DISTRIB_CODENAME="stretch";
+                   REV="9";
+                  ;;
+                2)
+                   DIST="debian";
+                   DISTRIB_CODENAME="wheezy";
+                   REV="8";
+                ;;
+                3)
+                   DIST="debian";
+                   DISTRIB_CODENAME="buster";
+                   REV="10";
+                ;;
+        esac
+
+
+# hack for install last package version from debian repo
+rm -dfr /etc/apt/preferences.d/*
+
+echo "deb https://mirror.yandex.ru/$DIST/ $DISTRIB_CODENAME main contrib non-free" | tee /etc/apt/sources.list.d/$DIST_$DISTRIB_CODENAME.list
+
+fi
+
+
+apt-get update
+
+source <(curl ${DOWNLOAD_URL_PREFIX}/check-ports.sh)
+source /tmp/install-preq.sh
+source /tmp/install-app.sh

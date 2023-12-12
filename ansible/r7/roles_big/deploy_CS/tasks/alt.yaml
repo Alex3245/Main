@@ -1,0 +1,78 @@
+---
+- name: сopy install-app.sh
+  ansible.builtin.template:
+    src: scripts/install-AltLinux/install-app.sh.j2
+    dest: /tmp/install-app.sh
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: update repo
+  ansible.builtin.shell:
+    cmd: apt-get update
+
+- name: upgrade packages
+  ansible.builtin.shell:
+    cmd: apt-get dist-upgrade -y
+
+- name: remove packages
+  ansible.builtin.package:
+    name: "{{ packagesAlt }}"
+    state: absent
+
+- name: remove pacheges in cmd
+  ansible.builtin.shell:
+    cmd: apt-get remove mysql libmariadb3 -y
+  when: ansible_facts['distribution_release'] == "Altostratus" and
+        ansible_facts['distribution_version'] == "9.1"
+
+- name: remove directory /var/lib/mysql/db
+  ansible.builtin.file:
+    path: /var/lib/mysql/db
+    state: absent
+
+- name: stop service ahttpd
+  ansible.builtin.shell:
+    cmd: systemctl stop ahttpd
+  ignore_errors: yes
+
+- name: stop service httpd2
+  ansible.builtin.shell:
+    cmd: systemctl stop httpd2
+  ignore_errors: yes
+
+- name: run a script
+  ansible.builtin.shell:
+    cmd: bash /tmp/install-ALTLinux.sh
+  register: runscript
+
+- name: debug runscript
+  debug:
+    msg: "{{ runscript.stdout_lines }}"
+
+- name: start service
+  ansible.builtin.systemd:
+    name: "{{ serviceAlt }}"
+    state: started
+    enabled: yes
+  when: ansible_facts['distribution_release'] == "Altostratus" and
+        ansible_facts['distribution_version'] == "9.1"
+
+# - name: restart service
+#   ansible.builtin.service:
+#     name: "{{ serviceAlt }}"
+#     state: started
+#   when: ansible_facts['distribution_release'] == "Altostratus" and
+#         ansible_facts['distribution_version'] == "9.1"
+
+# - name: start service
+#   ansible.builtin.shell:
+#     cmd: systemctl start monoserve monoserveApiSystem r7-officeTelegram r7-officeRadicale r7-officeSocketIO r7-officeThumb r7-officeUrlShortener r7-officeBackup r7-officeFeed r7-officeIndex r7-officeIndex r7-officeNotify r7-officeMailAggregator r7-officeMailWatchdog r7-officeMailCleaner r7-officeRadicale r7-officeStorageMigrate r7-officeStorageEncryption
+#   when: ansible_facts['distribution_release'] == "Altostratus" and
+#         ansible_facts['distribution_version'] == "9.1"
+      
+# - name: enable service
+#   ansible.builtin.shell:
+#     cmd: systemctl enable monoserve monoserveApiSystem r7-officeTelegram r7-officeRadicale r7-officeSocketIO r7-officeThumb r7-officeUrlShortener r7-officeBackup r7-officeFeed r7-officeIndex r7-officeIndex r7-officeNotify r7-officeMailAggregator r7-officeMailWatchdog r7-officeMailCleaner r7-officeRadicale r7-officeStorageMigrate r7-officeStorageEncryption
+#   when: ansible_facts['distribution_release'] == "Altostratus" and
+#         ansible_facts['distribution_version'] == "9.1"

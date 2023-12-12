@@ -1,0 +1,20 @@
+---
+- name: Add repo r7
+  ansible.builtin.copy:
+    src: yum/r7-office.repo
+    dest: /etc/yum.repos.d/r7-office.repo
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Add key rep
+  ansible.builtin.shell: |
+    curl -o cs.key "https://download.r7-office.ru/repo/gpgkey/r7-office.gpg.key" 
+    echo "" >> cs.key
+    rpm --import cs.key
+    rm cs.key
+    exit 0
+
+- name: Install elasticsearch
+  yum:
+    name: elasticsearch="{{ version_elastic_yum }}"

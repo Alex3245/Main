@@ -1,0 +1,65 @@
+---
+- name: сopy install-AstraLinux.sh
+  ansible.builtin.template:
+    src: scripts/install-AstraLinux.sh.j2
+    dest: /tmp/install-AstraLinux.sh
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: сopy install-app.sh
+  ansible.builtin.template:
+    src: scripts/install-AstraLinux/install-app.sh.j2
+    dest: /tmp/install-app.sh
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: сopy install-preq.sh
+  ansible.builtin.template:
+    src: scripts/install-AstraLinux/install-preq.sh.j2
+    dest: /tmp/install-preq.sh
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: update packages
+  apt:
+    name: "{{ packagesAsrta }}"
+    update_cache: yes
+
+- name: copy apt/sources.list
+  ansible.builtin.template:
+    src: apt/sources.list
+    dest: /etc/apt/sources.list
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: copy preferences.d/orel
+  ansible.builtin.template:
+    src: apt/preferences.d/orel
+    dest: /etc/apt/preferences.d/orel
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: update all packages
+  apt:
+    name: "*"
+    update_cache: yes
+    state: latest
+
+- name: install packages
+  apt:
+    name: "{{ packagesAsrta }}"
+
+
+- name: run a script
+  ansible.builtin.shell:
+    cmd: bash /tmp/install-AstraLinux.sh
+  register: runscript
+
+- name: debug runscript
+  debug:
+    msg: "{{ runscript.stdout_lines }}"

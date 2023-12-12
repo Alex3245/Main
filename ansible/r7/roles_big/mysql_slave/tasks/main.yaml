@@ -1,0 +1,94 @@
+---
+- name: copy /tmp/mysql.sh
+  ansible.builtin.template:
+    src: mysql.sh.j2
+    dest: /tmp/mysql.sh
+    owner: root
+    group: root
+    mode: '0744'
+
+- name: settings mysql_slave
+  ansible.builtin.shell:
+    cmd: sh /tmp/mysql.sh
+  register: slave
+
+- name: script execution output
+  debug:
+    msg: "{{ slave.stdout_lines }}"
+
+- name: variable setting
+  block:
+
+    - name: master_position
+      ansible.builtin.shell:
+        cmd: mysql -u{{ mysql_user }} -p{{ mysql_pass }} -N -e "show master status;" | cut -d '.' -f2 | cut -b 8-40 | sed s/'\s'//g
+      register: master_position
+
+    - name: output master_position
+      debug:
+        msg: "{{ master_position.stdout_lines }}"
+
+    - name: master_log sh
+      ansible.builtin.shell:
+        cmd: mysql -u{{ mysql_user }} -p{{ mysql_pass }} -N -e "show master status;" | cut -b 1-16 | sed s/'\s'//g
+      register: master_log
+
+    - name: output master_log
+      debug:
+        msg: "{{ master_log.stdout_lines }}"
+
+  delegate_to: "{{ hostvars['master_node'].ansible_host }}"
+
+- name: settings slave
+  ansible.builtin.shell:
+    cmd: mysql -u{{ mysql_user }} -p{{ mysql_pass }} -N -e "stop replica;"
+
+- name: settings slave
+  ansible.builtin.shell:
+    cmd: mysql -u{{ mysql_user }} -p{{ mysql_pass }} -N -e "CHANGE REPLICATION SOURCE TO SOURCE_HOST = '{{ hostvars['master_node'].ansible_host }}', SOURCE_USER = '{{ mysql_user_repl }}', SOURCE_PASSWORD = '{{ mysql_pass_repl }}', SOURCE_LOG_FILE = '{{ master_log.stdout_lines[0] }}', SOURCE_LOG_POS = {{ master_position.stdout_lines[0] }};"
+  register: settings_slave
+
+- name: output settings_slave
+  debug:
+    msg: "{{ settings_slave.stderr_lines }}"
+
+- name: start slave
+  ansible.builtin.shell:
+    cmd: mysql -u{{ mysql_user }} -p{{ mysql_pass }} -N -e "start replica;"
+  register: start_slave
+
+- name: output start_slave
+  debug:
+    msg: "{{ start_slave.stdout_lines }}"
+
+- name: status slave
+  ansible.builtin.shell:
+    cmd: mysql -u{{ mysql_user }} -p{{ mysql_pass }} -N -e "show replica status \G;"
+  register: status_slave
+
+- name: output status_slave
+  debug:
+    msg: "{{ status_slave.stdout_lines }}"
+
+- name: setting up a master node to work with CS R7
+  block:
+
+    - name: settings mysql_master
+      ansible.builtin.shell:
+        cmd: sh /tmp/mysqlr7.sh
+      register: mysqlr7
+
+    - name: script execution output
+      debug:
+        msg: "{{ mysqlr7.stdout_lines }}"
+
+  delegate_to: "{{ hostvars['master_node'].ansible_host }}"
+
+- name: status slave
+  ansible.builtin.shell:
+    cmd: mysql -u{{ mysql_user }} -p{{ mysql_pass }} -N -e "SHOW DATABASES;"
+  register: status_slave
+
+- name: output status_slave
+  debug:
+    msg: "{{ status_slave.stdout_lines }}"

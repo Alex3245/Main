@@ -1,0 +1,103 @@
+#!/bin/sh
+
+DIR=/var/www/r7-office
+CONF=$DIR/Services/Jabber/ASC.Xmpp.Server.Launcher.exe.config
+MYSQL=""
+DB_HOST="{{ hostvars['master_node'].ansible_host }}"
+DB_NAME="${package_sysname}"
+DB_USER="{{ mysql_user }}"
+DB_PWD="{{ mysql_pass }}"
+
+[ -e $CONF ] || { echo "Configuration file not found at path $CONF"; exit 1; }
+[ $(id -u) -ne 0 ] && { echo "Root privileges required"; exit 1; }
+
+restart_services() {
+	echo "Restarting services... "
+
+	systemctl stop r7-officeJabber.service
+	systemctl start r7-officeJabber.service
+
+	echo "r7-officeJabber.service "
+	echo "OK"
+}
+
+# function read_db_params() {
+	# local CONN_STR=$(grep -o "Server=.*;Database=.*;User ID=.*;Password=.*;" $CONF)
+	# local OLD_IFS="$IFS"
+	# local IFS=";="
+	# local VALUES=( $CONN_STR )
+	
+	# IFS="$OLD_IFS"
+
+	# DB_HOST="${VALUES[1]}"
+	# DB_NAME="${VALUES[3]}"
+	# DB_USER="${VALUES[5]}"
+
+	# echo "Configuring MySQL access... "
+
+    # if read -i "default" 2>/dev/null <<< "test"; then 
+		# read -e -p "Host: " -i "$DB_HOST" DB_HOST
+		# read -e -p "Database name: " -i "$DB_NAME" DB_NAME
+		# read -e -p "User: " -i "$DB_USER" DB_USER
+		# read -e -p "Password: " -s DB_PWD
+	# else
+		# read -e -p "Host (default $DB_HOST): " DB_HOST
+		# read -e -p "Database name (default $DB_NAME): " DB_NAME
+		# read -e -p "User (default $DB_USER): " DB_USER
+		# read -e -p "Password: " -s DB_PWD
+
+		# if [ -z $DB_HOST ]; then
+			# DB_HOST="${VALUES[1]}";
+		# fi
+
+		# if [ -z $DB_NAME ]; then
+			# DB_NAME="${VALUES[3]}";
+		# fi
+
+		# if [ -z $DB_USER ]; then
+			# DB_USER="${VALUES[5]}";
+		# fi
+
+	# fi
+
+	# echo
+# }
+
+save_db_params() {
+	CONN_STR="Server=$DB_HOST;Database=$DB_NAME;User ID=$DB_USER;Password=$DB_PWD;Pooling=true;Character Set=utf8;AutoEnlist=false;SSL Mode=none;AllowPublicKeyRetrieval=true;Connection Timeout=30;Maximum Pool Size=300;"
+
+	find "$DIR/Services/Jabber/" -type f -name "*.[cC]onfig" -exec sed -i "s/connectionString=.*/connectionString=\"Server=$DB_HOST;Database=$DB_NAME;User ID=$DB_USER;Password=$DB_PWD;Pooling=true;Character Set=utf8;AutoEnlist=false\" providerName=\"MySql.Data.MySqlClient\"\/>/" {} \;
+}
+
+establish_db_conn() {
+	echo -n "Trying to establish MySQL connection... "
+
+	command -v mysql >/dev/null 2>&1 || { echo "MySQL client not found"; exit 1; }
+
+	MYSQL="mysql -h$DB_HOST -u$DB_USER"
+	if [ -n "$DB_PWD" ]; then
+		MYSQL="$MYSQL -p$DB_PWD"
+	fi
+
+	$MYSQL -e ";" >/dev/null 2>&1
+
+	ERRCODE=$?
+
+	if [ $ERRCODE -ne 0 ]; then
+		systemctl mysqld start >/dev/null 2>&1
+		$MYSQL -e ";" >/dev/null 2>&1 || { echo "FAILURE"; exit 1; }
+	fi
+
+	echo "OK"
+}
+
+function mysql_check_connection() {
+	while ! $MYSQL -e ";" >/dev/null 2>&1; do
+    		sleep 1
+	done
+}
+
+# read_db_params
+establish_db_conn || exit $?
+save_db_params
+restart_services
