@@ -1,0 +1,146 @@
+---
+- name: Copy /tmp/mysql.sh
+  ansible.builtin.template:
+    src: mysql.sh.j2
+    dest: /tmp/mysql.sh
+    owner: root
+    group: root
+    mode: '0744'
+
+- name: Copy /tmp/mysqlr7.sh
+  ansible.builtin.template:
+    src: mysqlr7.sh.j2
+    dest: /tmp/mysqlr7.sh
+    owner: root
+    group: root
+    mode: '0744'
+
+- name: Copy sql files
+  copy:
+    src: "{{ item }}"
+    dest: '/tmp'
+    owner: root
+    group: root
+    mode: 0644
+  loop:
+    - "{{ cs_os }}"/r7-office.data.sql
+    - "{{ cs_os }}"/r7-office.sql
+    - "{{ cs_os }}"/r7-office.upgrade80.sql
+    - "{{ cs_os }}"/r7-office.upgrade81.sql
+    - "{{ cs_os }}"/r7-office.upgrade85.sql
+    - "{{ cs_os }}"/r7-office.upgrade86.sql
+    - "{{ cs_os }}"/r7-office.upgrade87.sql
+    - "{{ cs_os }}"/r7-office.upgrade88.sql
+    - "{{ cs_os }}"/r7-office.upgrade890.sql
+    - "{{ cs_os }}"/r7-office.upgrade892.sql
+    - "{{ cs_os }}"/r7-office.upgrade90.sql
+    - "{{ cs_os }}"/r7-office.upgrade91.sql
+    - "{{ cs_os }}"/r7-office.upgrade950.sql
+    - "{{ cs_os }}"/r7-office.upgrade952.sql
+    - "{{ cs_os }}"/r7-office.upgrade960.sql
+    - "{{ cs_os }}"/r7-office.upgrade962.sql
+    - "{{ cs_os }}"/r7-office.upgrade963.sql
+    - "{{ cs_os }}"/r7-office.upgradev100.sql
+    - "{{ cs_os }}"/r7-office.upgradev105.sql
+    - "{{ cs_os }}"/r7-office.upgradev110.sql
+    - "{{ cs_os }}"/r7-office.upgradev111.sql
+    - "{{ cs_os }}"/r7-office.upgradev115.sql
+    - "{{ cs_os }}"/r7-office.upgradev116.sql
+    - "{{ cs_os }}"/r7-office.upgradev120.sql
+    - "{{ cs_os }}"/r7-office.upgradev121.sql
+  when: cs_os== "alt" or cs_os == "rpm"
+
+- name: Copy sql files
+  copy:
+    src: "{{ item }}"
+    dest: '/tmp'
+    owner: root
+    group: root
+    mode: 0644
+  loop:
+    - "{{ cs_os }}"/r7-office.data.sql
+    - "{{ cs_os }}"/r7-office.resources.sql
+    - "{{ cs_os }}"/r7-office.sql
+    - "{{ cs_os }}"/r7-office.upgrade.resources.sql
+    - "{{ cs_os }}"/r7-office.upgrade80.sql
+    - "{{ cs_os }}"/r7-office.upgrade81.sql
+    - "{{ cs_os }}"/r7-office.upgrade85.sql
+    - "{{ cs_os }}"/r7-office.upgrade86.sql
+    - "{{ cs_os }}"/r7-office.upgrade87.sql
+    - "{{ cs_os }}"/r7-office.upgrade88.sql
+    - "{{ cs_os }}"/r7-office.upgrade890.sql
+    - "{{ cs_os }}"/r7-office.upgrade892.sql
+    - "{{ cs_os }}"/r7-office.upgrade90.sql
+    - "{{ cs_os }}"/r7-office.upgrade91.sql
+    - "{{ cs_os }}"/r7-office.upgrade950.sql
+    - "{{ cs_os }}"/r7-office.upgrade952.sql
+    - "{{ cs_os }}"/r7-office.upgrade960.sql
+    - "{{ cs_os }}"/r7-office.upgrade962.sql
+    - "{{ cs_os }}"/r7-office.upgrade963.sql
+    - "{{ cs_os }}"/r7-office.upgradev100.sql
+    - "{{ cs_os }}"/r7-office.upgradev105.sql
+    - "{{ cs_os }}"/r7-office.upgradev110.sql
+    - "{{ cs_os }}"/r7-office.upgradev111.sql
+    - "{{ cs_os }}"/r7-office.upgradev115.sql
+    - "{{ cs_os }}"/r7-office.upgradev116.sql
+    - "{{ cs_os }}"/r7-office.upgradev120.sql
+    - "{{ cs_os }}"/r7-office.upgradev121.sql
+  when: cs_os == "apt"
+
+- name: Copy sql files
+  copy:
+    src: "{{ item }}"
+    dest: '/tmp'
+    owner: root
+    group: root
+    mode: 0644
+  loop:
+    - "{{ cs_os }}"/r7-office.data.sql
+    - "{{ cs_os }}"/r7-office.sql
+    - "{{ cs_os }}"/r7-office.upgrade80.sql
+    - "{{ cs_os }}"/r7-office.upgrade81.sql
+    - "{{ cs_os }}"/r7-office.upgrade85.sql
+    - "{{ cs_os }}"/r7-office.upgrade86.sql
+    - "{{ cs_os }}"/r7-office.upgrade87.sql
+    - "{{ cs_os }}"/r7-office.upgrade88.sql
+    - "{{ cs_os }}"/r7-office.upgrade890.sql
+    - "{{ cs_os }}"/r7-office.upgrade892.sql
+    - "{{ cs_os }}"/r7-office.upgrade90.sql
+    - "{{ cs_os }}"/r7-office.upgrade91.sql
+    - "{{ cs_os }}"/r7-office.upgrade950.sql
+    - "{{ cs_os }}"/r7-office.upgrade952.sql
+    - "{{ cs_os }}"/r7-office.upgrade960.sql
+    - "{{ cs_os }}"/r7-office.upgrade962.sql
+    - "{{ cs_os }}"/r7-office.upgrade963.sql
+    - "{{ cs_os }}"/r7-office.upgradev100.sql
+    - "{{ cs_os }}"/r7-office.upgradev105.sql
+    - "{{ cs_os }}"/r7-office.upgradev110.sql
+    - "{{ cs_os }}"/r7-office.upgradev111.sql
+    - "{{ cs_os }}"/r7-office.upgradev115.sql
+    - "{{ cs_os }}"/r7-office.upgradev116.sql
+    - "{{ cs_os }}"/r7-office.upgradev120.sql
+    - "{{ cs_os }}"/r7-office.upgradev121.sql
+  when: cs_os == "win"
+
+- name: Settings mysql_master
+  ansible.builtin.shell:
+    cmd: sh /tmp/mysql.sh
+  register: mysql
+
+- name: Script execution output
+  debug:
+    msg: "{{ mysql.stderr_lines }}"
+
+- name: Setting up a master node to work with CS R7
+  block:
+
+    - name: Settings mysql_master
+      ansible.builtin.shell:
+        cmd: sh /tmp/mysqlr7.sh
+      register: mysqlr7
+
+    - name: Script execution output
+      debug:
+        msg: "{{ mysqlr7.stderr_lines }}"
+
+  when: mysql_cluster == "false"

@@ -1,0 +1,202 @@
+#!/bin/bash
+
+package_sysname="r7-office";
+MYSQL_SERVER_HOST=${MYSQL_SERVER_HOST:-"{{ hostvars['master_node'].ansible_host }}"}
+MYSQL_SERVER_DB_NAME=${MYSQL_SERVER_DB_NAME:-"${package_sysname}"}
+MYSQL_SERVER_USER=${MYSQL_SERVER_USER:-"{{ mysql_user }}"}
+MYSQL_SERVER_PASS=${MYSQL_SERVER_PASS:-"{{ mysql_pass }}"}
+MYSQL_SLAVE_USER=${MYSQL_SLAVE_USER:-"{{ mysql_user_repl }}"}
+MYSQL_SLAVE_PASS=${MYSQL_SLAVE_PASS:-"{{ mysql_pass_repl }}"}
+MYSQL_SERVER_PORT=${MYSQL_SERVER_PORT:-3306}
+MYSQL_TEMPORARY_ROOT_PASS=""
+DIR=/tmp
+
+MYSQL_root="mysql -u$MYSQL_SERVER_USER -p$MYSQL_SERVER_PASS"
+
+################ get a temporary password
+
+if [ -f "/var/log/mysqld.log" ]; then
+	MYSQL_TEMPORARY_ROOT_PASS=$(cat /var/log/mysqld.log | grep "temporary password" | rev | cut -d " " -f 1 | rev | tail -1);
+fi
+
+while ! mysqladmin ping -u root --silent; do
+	sleep 1
+done
+
+################ setting a password for the root user
+
+if ! mysql "-u$MYSQL_SERVER_USER" "-p$MYSQL_SERVER_PASS" -e ";" >/dev/null 2>&1; then
+	if [ -z $MYSQL_TEMPORARY_ROOT_PASS ]; then
+		MYSQL="mysql --connect-expired-password -u$MYSQL_SERVER_USER -D mysql";
+	else
+		MYSQL="mysql --connect-expired-password -u$MYSQL_SERVER_USER -p${MYSQL_TEMPORARY_ROOT_PASS} -D mysql";
+	fi
+		
+		$MYSQL -e "ALTER USER '${MYSQL_SERVER_USER}'@'localhost' IDENTIFIED WITH mysql_native_password BY '${MYSQL_SERVER_PASS}'" \
+		|| $MYSQL -e "UPDATE user SET plugin='mysql_native_password', authentication_string=PASSWORD('${MYSQL_SERVER_PASS}') WHERE user='${MYSQL_SERVER_USER}'$"
+
+	systemctl restart mysqld
+fi
+
+################ creating a user for slave mysql
+
+{% if mysql_cluster == "true" %}
+$MYSQL_root -e "CREATE USER '${MYSQL_SLAVE_USER}'@'{{ hostvars['slave_node'].ansible_host }}' IDENTIFIED BY '${MYSQL_SLAVE_PASS}';"
+$MYSQL_root -e "GRANT replication slave ON *.* TO '${MYSQL_SLAVE_USER}'@'{{ hostvars['slave_node'].ansible_host }}';"
+$MYSQL_root -e "ALTER USER '${MYSQL_SLAVE_USER}'@'{{ hostvars['slave_node'].ansible_host }}' IDENTIFIED WITH mysql_native_password BY '${MYSQL_SLAVE_PASS}';"
+$MYSQL_root -e "FLUSH PRIVILEGES;"
+{% endif %}
+
+systemctl restart mysqld
+
+################ assigning variables for further work
+
+MYSQL=""
+DB_HOST="localhost"
+DB_NAME=${MYSQL_SERVER_DB_NAME}
+DB_USER=${MYSQL_SERVER_USER}
+DB_PWD=${MYSQL_SERVER_PASS}
+
+################ set up a connection to MySQL
+
+establish_db_conn() {
+        echo -n "Trying to establish MySQL connection... "
+
+        command -v mysql >/dev/null 2>&1 || { echo "MySQL client not found"; exit 1; }
+
+        MYSQL="mysql -h$DB_HOST -u$DB_USER"
+        if [ -n "$DB_PWD" ]; then
+                MYSQL="$MYSQL -p$DB_PWD"
+        fi
+
+        $MYSQL -e ";" >/dev/null 2>&1
+        ERRCODE=$?
+        if [ $ERRCODE -ne 0 ]; then
+                systemctl mysqld start >/dev/null 2>&1
+                $MYSQL -e ";" >/dev/null 2>&1 || { echo "FAILURE"; exit 1; }
+        fi
+
+        echo "OK"
+}
+
+################ mysql connection test function
+
+function mysql_check_connection() {
+        while ! $MYSQL -e ";" >/dev/null 2>&1; do
+                sleep 1
+        done
+}
+
+################ database scripts execution
+
+execute_db_scripts() {
+
+        local CNF_PATH="/etc/my.cnf";
+        local CNF_SERVICE_PATH="/usr/lib/systemd/system/mysqld.service";
+
+        if ! grep -q "\[mysqld\]" ${CNF_PATH}; then
+                        CNF_PATH="/etc/my.cnf.d/server.cnf";
+
+                        if ! grep -q "\[mysqld\]" ${CNF_PATH}; then
+                                exit 1;
+                        fi
+        fi 
+
+        if ! grep -q "\[Unit\]" ${CNF_SERVICE_PATH}; then
+                        CNF_SERVICE_PATH="/lib/systemd/system/mysqld.service";
+
+                        if ! grep -q "\[Unit\]" ${CNF_SERVICE_PATH}; then
+                                CNF_SERVICE_PATH="/lib/systemd/system/mariadb.service";
+
+                                if ! grep -q "\[Unit\]" ${CNF_SERVICE_PATH}; then 
+                                        exit 1;
+                                fi
+                        fi
+        fi 
+
+################ configuring the my.cnf configuration file
+
+        sed '/skip-networking/d' -i ${CNF_PATH} || true # ignore errors
+
+        if ! grep -q "^sql_mode" ${CNF_PATH}; then
+                sed "/\[mysqld\]/a sql_mode = 'NO_ENGINE_SUBSTITUTION'" -i ${CNF_PATH} # disable new STRICT mode in mysql 5.7
+        else
+                sed "s/sql_mode.*/sql_mode = 'NO_ENGINE_SUBSTITUTION'/" -i ${CNF_PATH} || true # ignore errors
+        fi
+
+        if ! grep -q "^max_connections"  ${CNF_PATH}; then
+                sed '/\[mysqld\]/a max_connections = 1000' -i ${CNF_PATH}
+        else
+                sed "s/max_connections.*/max_connections = 1000/" -i ${CNF_PATH} || true # ignore errors
+        fi
+
+        if ! grep -q "^group_concat_max_len"  ${CNF_PATH}; then
+                sed '/\[mysqld\]/a group_concat_max_len = 2048' -i ${CNF_PATH}
+        else
+                sed "s/group_concat_max_len.*/group_concat_max_len = 2048/" -i ${CNF_PATH} || true # ignore errors
+        fi
+
+        if ! grep -q "^max_allowed_packet"  ${CNF_PATH}; then
+                sed '/\[mysqld\]/a max_allowed_packet = 1048576000' -i ${CNF_PATH}
+        else
+                sed "s/max_allowed_packet.*/max_allowed_packet = 1048576000/" -i ${CNF_PATH} || true # ignore errors
+        fi
+
+        if ! grep -q "^character_set_server"  ${CNF_PATH}; then
+                sed '/\[mysqld\]/a character_set_server = utf8' -i ${CNF_PATH}
+        else
+                sed "s/character_set_server.*/character_set_server = utf8/" -i ${CNF_PATH} || true # ignore errors
+        fi
+
+        if ! grep -q "^collation_server"  ${CNF_PATH}; then
+                sed '/\[mysqld\]/a collation_server = utf8_general_ci' -i ${CNF_PATH}
+        else
+                sed "s/collation_server.*/collation_server = utf8_general_ci/" -i ${CNF_PATH} || true # ignore errors
+        fi
+
+        if ! grep -q "^default-authentication-plugin"  ${CNF_PATH}; then
+                sed '/\[mysqld\]/a default-authentication-plugin = mysql_native_password' -i ${CNF_PATH}
+        else
+                sed "s/default-authentication-plugin.*/default-authentication-plugin = mysql_native_password/" -i ${CNF_PATH} || true # ignore errors
+        fi
+
+        if ! grep -q "^LimitNOFILE"  ${CNF_SERVICE_PATH}; then
+                sed '/\[Service\]/a LimitNOFILE = infinity' -i ${CNF_SERVICE_PATH}
+        else
+                sed "s/LimitNOFILE.*/LimitNOFILE = infinity/" -i ${CNF_SERVICE_PATH} || true # ignore errors
+        fi
+
+        if ! grep -q "^LimitMEMLOCK"  ${CNF_SERVICE_PATH}; then
+                sed '/\[Service\]/a LimitMEMLOCK = infinity' -i ${CNF_SERVICE_PATH}
+        else
+                sed "s/LimitMEMLOCK.*/LimitMEMLOCK = infinity/" -i ${CNF_SERVICE_PATH} || true # ignore errors
+        fi
+
+        if ! grep -q "^innodb_strict_mode"  ${CNF_PATH}; then
+                sed '/\[mysqld\]/a innodb_strict_mode = 0' -i ${CNF_PATH}
+        else
+                sed "s/innodb_strict_mode.*/innodb_strict_mode = 0/" -i ${CNF_PATH} || true # ignore errors
+        fi
+
+{% if mysql_cluster == 'true' %}
+        if ! grep -q "^server_id" ${CNF_PATH}; then
+                sed "/\[mysqld\]/a server_id = 1" -i ${CNF_PATH}
+        else
+                sed "s/server_id.*/server_id = 1/" -i ${CNF_PATH} || true # ignore errors  # add server id
+        fi
+
+        if ! grep -q "^log_bin" ${CNF_PATH}; then
+                sed "/\[mysqld\]/a log_bin = mysql-bin" -i ${CNF_PATH}
+        else
+                sed "s/log_bin.*/log_bin = mysql-bin/" -i ${CNF_PATH} || true # ignore errors # includes the binary log and indicates its location
+        fi
+{% endif %}
+
+        systemctl daemon-reload
+        systemctl stop mysqld
+        systemctl restart mysqld
+
+}
+
+establish_db_conn
+execute_db_scripts
