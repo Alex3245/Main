@@ -1,0 +1,21 @@
+---
+- name: test
+  hosts: r7_single
+ 
+  tasks:
+    - name: testpwd
+      ansible.builtin.shell:
+        cmd: pwd
+        stdin: 
+
+    - name: Print all available facts
+      ansible.builtin.debug:
+        var: ansible_fact
+
+    - name: Copy file with owner and permissions
+      ansible.builtin.copy:
+        src: /home/user/copyme
+        dest: /home/copyme
+        owner: root
+        group: root
+        mode: '0644'  

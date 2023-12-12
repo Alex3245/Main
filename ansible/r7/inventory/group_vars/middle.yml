@@ -1,0 +1,33 @@
+---
+# for all vm
+ansible_port: 22
+
+# for cs and nginx
+cs_cluster: "false"
+cs_os: win # rpm apt alt
+#domain_name: cs_cluster.ru
+vars_ssl: false
+
+# dor ds and cs
+jwt_secret: "RrTCPPwQ1wq2"
+jwt_header: AuthorizationJwt
+jwt_enabled: "true"
+
+# for connetc ds to postgresql
+postgresql_user: r7office
+postgresql_db_name: r7office
+postgresql_user_pwd: r7office
+
+# elasticsearch settings
+version_elastic_apt: 7.16.3
+version_elastic_rpm: 7.16.3-1
+url_alt_elastic: "https://download.r7-office.ru/repo/centos/main/noarch/elasticsearch-7.16.3-x86_64.rpm"
+url_attach_elas: "https://download.r7-office.ru/ingest-attachment/ingest-attachment-7.16.3.zip"
+elastic_ram: 1g
+
+# for mysql and cs
+mysql_pass: "r7office"
+mysql_user: "root"
+mysql_user_repl: "slave_repl"
+mysql_pass_repl: "slave_repl"
+mysql_cluster: "true"

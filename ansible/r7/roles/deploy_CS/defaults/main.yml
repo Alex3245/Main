@@ -1,0 +1,47 @@
+---
+packagesCentos:
+  - "firewalld"
+
+packagesRedOS:
+  - mariadb-common
+  - mariadb-config
+  - mariadb-libs
+  - mariadb-connector-c
+  - mariadb-connector-c-config
+  
+packagesAlt:
+  - "mysql"
+  - "libmariadb3"
+
+packagesRedOS72:
+  - curl
+
+packagesAsrta:
+  - debian-archive-keyring
+  - dirmngr
+  - python3-setuptools
+  - apt-transport-https
+  - ca-certificates
+
+packagesDeb:
+  - python3-setuptools
+
+serviceAlt:
+  - monoserve
+  - monoserveApiSystem
+  - r7-officeTelegram
+  - r7-officeRadicale
+  - r7-officeSocketIO
+  - r7-officeThumb
+  - r7-officeUrlShortener
+  - r7-officeBackup
+  - r7-officeFeed
+  - r7-officeIndex
+  - r7-officeIndex
+  - r7-officeNotify
+  - r7-officeMailAggregator
+  - r7-officeMailWatchdog
+  - r7-officeMailCleaner
+  - r7-officeRadicale
+  - r7-officeStorageMigrate
+  - r7-officeStorageEncryption

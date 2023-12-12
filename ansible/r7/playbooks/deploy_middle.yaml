@@ -1,0 +1,33 @@
+---
+#- hosts: mysql
+#  gather_facts: True
+#  become: True
+#  roles:
+#    - deploy_mysql
+#
+- hosts: middle_dbm
+  gather_facts: True
+  become: True
+  roles:
+    - mysql_master
+
+- hosts: middle_dbs
+  gather_facts: True
+  become: True
+  tasks:
+    - name: slave role
+      include_role:
+        name: mysql_slave
+      when: mysql_cluster == "true"
+
+#- hosts: ds
+#  gather_facts: True
+#  become: True
+#  roles:
+#    - deploy_DS
+
+#- hosts: cs
+#  gather_facts: True
+#  become: True
+#  roles:
+#    - deploy_CS

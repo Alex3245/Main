@@ -1,0 +1,18 @@
+---
+- hosts: cs
+  gather_facts: True
+  become: True
+  roles:
+    - deploy_CS
+
+- hosts: ds
+  gather_facts: True
+  become: True
+  roles:
+    - deploy_DS
+
+- hosts: nginx
+  gather_facts: True
+  become: True
+  roles:
+    - deploy_nginx

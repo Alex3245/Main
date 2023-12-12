@@ -1,0 +1,21 @@
+---
+- hosts: mysql
+  gather_facts: True
+  become: True
+  roles:
+    - deploy_mysql
+
+- hosts: master_db
+  gather_facts: True
+  become: True
+  roles:
+    - mysql_master
+
+- hosts: slave_db
+  gather_facts: True
+  become: True
+  tasks:
+    - name: slave role
+      include_role:
+        name: mysql_slave
+      when: mysql_cluster is defined and mysql_cluster == 'true'

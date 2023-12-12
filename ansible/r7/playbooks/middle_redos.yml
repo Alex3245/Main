@@ -1,0 +1,24 @@
+---
+- hosts: middle_cs
+  gather_facts: True
+  become: True
+  roles:
+    - deploy_CS
+
+#- hosts: middle_ds
+#  gather_facts: True
+#  become: True
+#  roles:
+#    - deploy_DS
+
+#- hosts: middle_dbm
+#  gather_facts: True
+#  become: True
+#  roles:
+#    - deploy_DBM
+
+#- hosts: middle_dbs
+#  gather_facts: True
+#  become: True
+#  roles:
+#    - deploy_DBS

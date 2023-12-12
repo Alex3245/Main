@@ -1,0 +1,63 @@
+---
+- name: Upgrade all packages
+  yum:
+    name: '*'
+    state: latest
+    
+- name: Tasks for CentOS8 RedOS7.3
+  block: 
+
+    - name: Remove mysql
+      ansible.builtin.shell:
+        cmd: dnf remove -y @mysql
+
+    - name: Disable module defaults repo mysql
+      ansible.builtin.shell:
+        cmd: dnf module -y reset mysql && dnf module -y disable mysql
+      when: ansible_facts['distribution_major_version'] == "8"
+
+#    - name: Install repo MySQL
+#      ansible.builtin.yum:
+#        name: https://dev.mysql.com/get/mysql80-community-release-el8-3.noarch.rpm
+#        validate_certs: no
+#        disable_gpg_check: yes
+    - name: Install repo MYSQL yum
+      ansible.builtin.shell:
+        cmd: yum localinstall -y https://dev.mysql.com/get/mysql80-community-release-el8-3.noarch.rpm || true
+
+  when: ansible_facts['distribution_major_version'] == "8" or
+        (("'7.3' in ansible_facts['distribution_version']") and 
+        ansible_facts['distribution'] == "RED")
+
+- name: Tasks for CentOS7 RedOS7.1-2
+  block: 
+
+    - name: Install repo MySQL
+      ansible.builtin.yum:
+        name: https://dev.mysql.com/get/mysql80-community-release-el7-5.noarch.rpm
+        validate_certs: no
+        disable_gpg_check: yes
+
+  when: (ansible_facts['distribution_major_version'] == "7" and
+        ansible_facts['distribution'] == "CentOS") or
+        (ansible_facts['distribution'] == "RED" and 
+        (ansible_facts['distribution_version'] == "7.1" or 
+        ansible_facts['distribution_version'] == "7.2"))
+
+- name: Install mysql
+  yum:
+    name: 
+      - mysql-community-server
+      - mysql-community-client
+
+- name: Started mysqld
+  ansible.builtin.service:
+    name: mysqld
+    state: started
+    enabled: yes
+
+- name: Stopped iptables
+  ansible.builtin.service:
+    name: iptables
+    state: stopped
+    enabled: no

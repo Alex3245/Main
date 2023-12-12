@@ -1,0 +1,80 @@
+# This is the default ansible 'hosts' file.
+#
+# It should live in /etc/ansible/hosts
+#
+#   - Comments begin with the '#' character
+#   - Blank lines are ignored
+#   - Groups of hosts are delimited by [header] elements
+#   - You can enter hostnames or ip addresses
+#   - A hostname/ip can be a member of multiple groups
+
+# Ex 1: Ungrouped hosts, specify before any group headers.
+
+## green.example.com
+## blue.example.com
+## 192.168.100.1
+## 192.168.100.10
+
+# Ex 2: A collection of hosts belonging to the 'webservers' group
+
+## [webservers]
+## alpha.example.org
+## beta.example.org
+## 192.168.1.100
+## 192.168.1.110
+
+# If you have multiple hosts following a pattern you can specify
+# them like this:
+
+## www[001:006].example.com
+
+# Ex 3: A collection of database servers in the 'dbservers' group
+
+## [dbservers]
+## 
+## db01.intranet.mydomain.net
+## db02.intranet.mydomain.net
+## 10.25.1.56
+## 10.25.1.57
+
+# Here's another example of host ranges, this time there are no
+# leading 0s:
+
+## db-[99:101]-node.example.com
+
+[r7_single]
+ubuntu ansible_host=192.168.25.63 ansible_ssh_private_key_file=/home/user/.ssh/id_rsa
+
+[r7_middle]
+
+
+#[middle_cs]
+#192.168.25.65 ansible_user=root ansible_password=root
+
+#[middle_ds]
+#192.168.25.66 ansible_user=root ansible_password=root
+
+#[middle_dbm]
+#192.168.25.5 ansible_user=root ansible_password=root
+
+
+#[middle_dbs]
+#192.168.25.22 ansible_user=root ansible_password=root
+
+[middle_cs]
+10.255.21.119 ansible_user=root ansible_password=root
+
+[middle_ds]
+10.255.21.112 ansible_user=root ansible_password=root
+
+[middle_dbm]
+10.255.21.113 ansible_user=root ansible_password=root
+
+
+[middle_dbs]
+10.255.21.114 ansible_user=root ansible_password=root
+
+[test]
+192.168.25.17 ansible_user=user ansible_password=user ansible_become=true
+#windows ansible_host=192.168.25.55 ansible_user=Administrator ansible_password=2oNCn3vaPiCT
+

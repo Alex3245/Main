@@ -1,0 +1,19 @@
+---
+- hosts: mysql
+  gather_facts: True
+  become: True
+  roles:
+    - deploy_mysql
+
+- hosts: nginx
+  gather_facts: True
+  become: True
+  roles:
+    - deploy_nginx
+
+- hosts: cs
+  gather_facts: True
+  become: True
+  roles:
+    - deploy_CS
+

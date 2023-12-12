@@ -1,0 +1,68 @@
+---
+- name: test
+  hosts: r7_single
+  
+  tasks:
+# Обновление репозитория и пакетов до актуальной версии
+  - name: update repo
+    ansible.builtin.shell:
+      cmd: apt update
+ 
+  - name: update all packages to their latest version
+    ansible.builtin.shell:
+      cmd: apt dist-upgrade -y
+
+# Скачивание скрипта установки CS 
+  - name: download script
+    get_url:
+      url: "https://download.r7-office.ru/repo/install-AstraLinux.sh"
+      dest: /tmp/install-AstraLinux.sh
+      mode: '0644'
+      validate_certs: no
+# Удаление пакетов согласно инструкции на сайте 
+#  - name: remove packages "Astralinux"
+#    ansible.builtin.package:
+#      name: "{{ packagesAlt }}"
+#      state: absent
+
+# Удаление данных БД MySQL 
+  - name: recursively remove directory
+    ansible.builtin.file:
+      path: /var/lib/mysql/db
+      state: absent
+# Остановка сервисов, которые могут занимать 80, 443 порты 
+#  - name: stop service httpd2
+#    ansible.builtin.service:
+#      name: httpd2
+#      state: stopped
+#      enabled: yes
+#      ignore_errors: yes
+                 
+        #  - name: stop service ahttpd
+        #    ansible.builtin.service:
+        #      name: ahttpd
+        #state: stopped
+        # enabled: yes
+        #ignore_errors: yes
+
+# Установка Сервера Совместной работы 
+  - name: install cs
+    ansible.builtin.shell:
+      cmd: bash /tmp/install-AstraLinux.sh
+                   
+        #  - name: debug runscriptalt
+        # debug:
+        # msg: "" 
+#  Запуск сервисов для определённой версии Alt Linux 
+  - name: start service
+    ansible.builtin.shell:
+      cmd: systemctl start monoserve monoserveApiSystem r7-officeTelegram r7-officeRadicale r7-officeSocketIO r7-officeThumb r7-officeUrlShortener r7-officeBackup r7-officeFeed r7-officeIndex r7-officeIndex r7-officeNotify r7-officeMailAggregator r7-officeMailWatchdog r7-officeMailCleaner r7-officeRadicale r7-officeStorageMigrate r7-officeStorageEncryption
+      when: ansible_facts['distribution_release'] == "Altostratus" and
+                                  ansible_facts['distribution_version'] == "9.1"
+                                        
+  - name: enable service
+    ansible.builtin.shell:
+      cmd: systemctl enable monoserve monoserveApiSystem r7-officeTelegram r7-officeRadicale r7-officeSocketIO r7-officeThumb r7-officeUrlShortener r7-officeBackup r7-officeFeed r7-officeIndex r7-officeIndex r7-officeNotify r7-officeMailAggregator r7-officeMailWatchdog r7-officeMailCleaner r7-officeRadicale r7-officeStorageMigrate r7-officeStorageEncryption
+      when: ansible_facts['distribution_release'] == "Altostratus" and
+                                  ansible_facts['distribution_version'] == "9.1"
+
